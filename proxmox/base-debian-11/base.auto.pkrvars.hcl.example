@@ -1,0 +1,21 @@
+proxmox_url = "https://pve1.alluvium.cloud:8006/api2/json"
+proxmox_username = "root@pam"
+proxmox_password = "<REDACTED>"
+proxmox_node = "pve1"
+proxmox_bridge = "vmbr0"
+
+// iso_url = "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-11.7.0-amd64-netinst.iso"
+// iso_checksum = "4460ef6470f6d8ae193c268e213d33a6a5a0da90c2d30c1024784faa4e4473f0c9b546a41e2d34c43fbbd43542ae4fb93cfd5cb6ac9b88a476f1a6877c478674"
+vm_id = "9002"
+vm_name = "debian-11-template-fromiso"
+
+cloud_init_storage_pool = "local-lvm"
+disk_storage_pool = "local-lvm"
+
+ssh_public_key_path = "/home/eric/.ssh/proxmox.pub"
+ssh_private_key_path = "/home/eric/.ssh/proxmox"
+
+vm_ip = "192.168.1.249"
+vm_netmask = "255.255.255.0"
+vm_gateway = "192.168.1.254"
+vm_nameserver = "192.168.1.254"

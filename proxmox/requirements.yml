@@ -1,0 +1,7 @@
+roles:
+  - name: geerlingguy.docker
+    version: 5.2.1
+collections:
+  - name: https://github.com/kencx/ansible.git
+    type: git
+    version: HEAD

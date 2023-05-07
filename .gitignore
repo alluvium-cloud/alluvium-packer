@@ -1,0 +1,28 @@
+.cache/*
+.venv/*
+cloud-config
+certs/*
+!certs/.gitkeep
+*.crt
+**/site/*
+
+# ansible
+inventory/*
+**/test.yml
+**/testca/vault/vault*
+
+# terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+# packer
+**/*.pkrvars.hcl
+**/builds/*
+
+# vagrant
+**/.vagrant/*
+
+# nomad
+input.vars

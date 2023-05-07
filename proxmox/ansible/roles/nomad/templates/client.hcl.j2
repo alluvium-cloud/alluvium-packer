@@ -1,0 +1,12 @@
+client {
+  enabled = true
+  servers = ["{{ nomad_server_ip }}"]
+}
+
+plugin "docker" {
+  config {
+    volumes {
+      enabled = true
+    }
+  }
+}

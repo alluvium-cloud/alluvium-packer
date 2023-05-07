@@ -1,0 +1,20 @@
+---
+nomad_config_dir: "/etc/nomad.d"
+nomad_data_dir: "/opt/nomad/data"
+nomad_tls_dir: "{{ nomad_data_dir }}/tls"
+consul_template_config_dir: "/etc/consul-template/"
+
+# vault
+setup_vault_integration: true
+
+# server
+nomad_bootstrap_expect: 1
+
+# client
+nomad_server_ip: ""
+
+# certificate generation
+nomad_vault_addr: "https://localhost:8200"
+nomad_common_name: "server.global.nomad"
+nomad_alt_names: "nomad.service.consul"
+nomad_ip_sans: "127.0.0.1"

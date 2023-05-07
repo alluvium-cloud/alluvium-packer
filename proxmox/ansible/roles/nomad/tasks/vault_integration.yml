@@ -1,0 +1,61 @@
+---
+# Both Nomad and consul-template perform renewal of the Vault token, but for entirely
+# different reasons.
+#
+# This file is simply for starting the Nomad service with a valid VAULT_TOKEN env
+# variable. On its expiry, Nomad will renew the token in memory without writing the
+# new token to the file.
+#
+# However, if Nomad is restarted after the token in the file has expired, Nomad is
+# unable to produce a new token for startup automatically. As such, consul-template
+# writes a new plain text token in the file when it expires, ensuring a valid token is
+# always available in the file.
+- name: Check if token file exists
+  stat:
+    path: "{{ nomad_data_dir }}/.vault_token"
+  register: nomad_vault_token
+  changed_when: false
+
+- name: Create Vault token file
+  block:
+    - name: Generate token for Vault integration with Nomad
+      # command: vault token create -role nomad_cluster -period 72h -orphan -format=json
+      command: vault write -format=json auth/token/create/nomad_cluster "period=72h"
+      environment:
+        VAULT_ADDR: "{{ nomad_vault_addr }}"
+        VAULT_TOKEN: "{{ nomad_ansible_token }}"
+      register: nomad_vault_token_raw
+
+    - set_fact:
+        nomad_vault_token_json: "{{ nomad_vault_token_raw.stdout | from_json }}"
+      when: nomad_vault_token_raw is defined and nomad_vault_token_raw.stdout is defined
+
+    - name: Write token file
+      copy:
+        content: "VAULT_TOKEN={{ nomad_vault_token_json.auth.client_token }}"
+        dest: "{{ nomad_data_dir }}/.vault_token"
+        mode: 0600
+        owner: nomad
+        group: nomad
+      when: nomad_vault_token_json is defined and nomad_vault_token_json.auth.client_token is defined
+  when: nomad_vault_token is defined and not nomad_vault_token.stat.exists
+
+- name: Add nomad_cluster token template stanza to consul-template
+  blockinfile:
+    path: "{{ consul_template_config_dir }}/consul-template.hcl"
+    marker: "# {mark} Nomad Vault Token"
+    validate: consul-template -config=%s -parse-only
+    block: |
+      template {
+        contents = <<EOF
+      {{ '{{' }} with secret "auth/token/create/nomad_cluster" "period=72h" {{ '}}' }}
+      VAULT_TOKEN={{ '{{' }} .Auth.ClientToken {{ '}}' }}
+      {{ '{{' }} end {{ '}}' }}
+      EOF
+        destination = "{{ nomad_data_dir }}/.vault_token"
+        perms = 0600
+        user = "nomad"
+        group = "nomad"
+        command = "date && if systemctl is-active nomad; then service nomad restart; fi"
+      }
+  notify: reload consul-template

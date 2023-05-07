@@ -1,0 +1,20 @@
+[Unit]
+Description=Consul-template
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+#User=consul-template
+#Group=consul-template
+ExecStart=/usr/bin/consul-template -config="{{ consul_template_config_dir }}/consul-template.hcl" -log-level=info
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+KillSignal=SIGINT
+Restart=on-failure
+RestartSec=60
+
+StartLimitBurst=3
+StartLimitInterval=60
+
+[Install]
+WantedBy=multi-user.target
