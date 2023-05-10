@@ -150,6 +150,20 @@ build {
     expect_disconnect = true
   }
 
+  provisioner "shell" {
+    execute_command = "{{ .Vars }} sudo -S -E sh -eux '{{ .Path }}'"
+    inline = [
+      "apt install -y cloud-init",
+      # wait for cloud-init to complete
+      "/usr/bin/cloud-init status --wait",
+      # install and start qemu-guest-agent
+      "apt update && apt install -y qemu-guest-agent ",
+      "systemctl enable qemu-guest-agent.service",
+      "systemctl start --no-block qemu-guest-agent.service",
+    ]
+    expect_disconnect = true
+  }
+
   # common post-provisioning
   provisioner "ansible" {
     playbook_file = "../ansible/common.yml"
@@ -165,7 +179,6 @@ build {
     ansible_env_vars = [
       "ANSIBLE_STDOUT_CALLBACK=yaml",
       "ANSIBLE_HOST_KEY_CHECKING=False",
-      "ANSIBLE_SSH_ARGS='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o AddKeysToAgent=no -o IdentitiesOnly=yes'",
     ]
   }
 }

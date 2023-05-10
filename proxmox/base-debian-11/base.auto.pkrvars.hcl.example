@@ -6,8 +6,8 @@ proxmox_bridge = "vmbr0"
 
 // iso_url = "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-11.7.0-amd64-netinst.iso"
 // iso_checksum = "4460ef6470f6d8ae193c268e213d33a6a5a0da90c2d30c1024784faa4e4473f0c9b546a41e2d34c43fbbd43542ae4fb93cfd5cb6ac9b88a476f1a6877c478674"
-vm_id = "9002"
-vm_name = "debian-11-template-fromiso"
+vm_id = "9000"
+vm_name = "debian-11-base"
 
 cloud_init_storage_pool = "local-lvm"
 disk_storage_pool = "local-lvm"
