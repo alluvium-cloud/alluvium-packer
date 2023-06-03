@@ -16,35 +16,35 @@ locals {
   ssh_public_key = file(var.ssh_public_key_path)
 }
 
-source "qemu" "base" {
-  vm_name          = var.vm_name
-  headless         = true
-  shutdown_command = "echo '${var.ssh_password}' | sudo -S /sbin/shutdown -hP now"
+# source "qemu" "base" {
+#   vm_name          = var.vm_name
+#   headless         = true
+#   shutdown_command = "echo '${var.ssh_password}' | sudo -S /sbin/shutdown -hP now"
 
-  iso_url      = var.iso_url
-  iso_checksum = var.iso_checksum
+#   iso_url      = var.iso_url
+#   iso_checksum = var.iso_checksum
 
-  cpus      = 2
-  disk_size = "65536"
-  memory    = 1024
-  qemuargs = [
-    ["-m", "1024M"],
-    ["-bios", "bios-256k.bin"],
-    ["-display", "none"]
-  ]
+#   cpus      = 2
+#   disk_size = "5G"
+#   memory    = 1024
+#   qemuargs = [
+#     ["-m", "1024M"],
+#     ["-bios", "bios-256k.bin"],
+#     ["-display", "none"]
+#   ]
 
-  ssh_username         = var.ssh_username
-  ssh_password         = var.ssh_password
-  ssh_private_key_file = var.ssh_private_key_path
-  ssh_port             = 22
-  ssh_wait_timeout     = "3600s"
+#   ssh_username         = var.ssh_username
+#   ssh_password         = var.ssh_password
+#   ssh_private_key_file = var.ssh_private_key_path
+#   ssh_port             = 22
+#   ssh_wait_timeout     = "3600s"
 
-  http_content = {
-    "/preseed.cfg" = templatefile("${path.root}/http/preseed.pkrtpl", local.preseed)
-  }
-  boot_wait    = "5s"
-  boot_command = ["<esc><wait>install <wait> preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg <wait>debian-installer=en_US.UTF-8 <wait>auto <wait>locale=en_US.UTF-8 <wait>kbd-chooser/method=us <wait>keyboard-configuration/xkb-keymap=us <wait>netcfg/get_hostname={{ .Name }} <wait>netcfg/get_domain=vagrantup.com <wait>fb=false <wait>debconf/frontend=noninteractive <wait>console-setup/ask_detect=false <wait>console-keymaps-at/keymap=us <wait>grub-installer/bootdev=default <wait><enter><wait>"]
-}
+#   http_content = {
+#     "/preseed.cfg" = templatefile("${path.root}/http/preseed.pkrtpl", local.preseed)
+#   }
+#   boot_wait    = "5s"
+#   boot_command = ["<esc><wait>install <wait> preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg <wait>debian-installer=en_US.UTF-8 <wait>auto <wait>locale=en_US.UTF-8 <wait>kbd-chooser/method=us <wait>keyboard-configuration/xkb-keymap=us <wait>netcfg/get_hostname={{ .Name }} <wait>netcfg/get_domain=vagrantup.com <wait>fb=false <wait>debconf/frontend=noninteractive <wait>console-setup/ask_detect=false <wait>console-keymaps-at/keymap=us <wait>grub-installer/bootdev=default <wait><enter><wait>"]
+# }
 
 source "proxmox-iso" "base" {
   proxmox_url = var.proxmox_url
@@ -102,7 +102,8 @@ source "proxmox-iso" "base" {
     "install <wait>",
 
     # TODO http://[http:port]/preseed.cfg cannot be reached
-    " preseed/url=http://raw.githubusercontent.com/kencx/homelab/169608d8f84d5b53aa0dacbad7ece7f5ad995888/packer/vagrant/http/preseed.cfg <wait>",
+    # " preseed/url=http://raw.githubusercontent.com/kencx/homelab/169608d8f84d5b53aa0dacbad7ece7f5ad995888/packer/vagrant/http/preseed.cfg <wait>",
+    " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg <wait>",
     "debian-installer=en_US.UTF-8 <wait>",
     "auto <wait>",
     "locale=en_US.UTF-8 <wait>",
@@ -124,7 +125,8 @@ source "proxmox-iso" "base" {
     "debconf/frontend=noninteractive <wait>",
     "console-setup/ask_detect=false <wait>",
     "console-keymaps-at/keymap=us <wait>",
-    "grub-installer/bootdev=default <wait>",
+    #d-i grub-installer/bootdev  string /dev/sda
+    "grub-installer/bootdev s=default <wait>",
     "<enter><wait>",
   ]
 }
@@ -165,20 +167,20 @@ build {
   }
 
   # common post-provisioning
-  provisioner "ansible" {
-    playbook_file = "../ansible/common.yml"
-    use_proxy = false
-    extra_arguments = [
-      "-e",
-      "user=${var.ssh_username}",
-      "-e",
-      "ansible_become_password=${var.ssh_password}",
-    ]
-    galaxy_file = "../requirements.yml"
-    user        = var.ssh_username
-    ansible_env_vars = [
-      "ANSIBLE_STDOUT_CALLBACK=yaml",
-      "ANSIBLE_HOST_KEY_CHECKING=False",
-    ]
-  }
+  # provisioner "ansible" {
+  #   playbook_file = "../ansible/common.yml"
+  #   use_proxy = false
+  #   extra_arguments = [
+  #     "-e",
+  #     "user=${var.ssh_username}",
+  #     "-e",
+  #     "ansible_become_password=${var.ssh_password}",
+  #   ]
+  #   galaxy_file = "../requirements.yml"
+  #   user        = var.ssh_username
+  #   ansible_env_vars = [
+  #     "ANSIBLE_STDOUT_CALLBACK=yaml",
+  #     "ANSIBLE_HOST_KEY_CHECKING=False",
+  #   ]
+  # }
 }

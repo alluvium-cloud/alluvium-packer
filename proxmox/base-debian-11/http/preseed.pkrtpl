@@ -1,17 +1,11 @@
 choose-mirror-bin mirror/http/proxy string
 d-i apt-setup/use_mirror boolean true
 d-i base-installer/kernel/override-image string linux-server
-d-i grub-installer/only_debian boolean true
-d-i grub-installer/with_other_os boolean true
-# d-i grub-installer/bootdev string default
-# d-i hw-detect/load_firmware boolean false
-# d-i hw-detect/load_media boolean false
 
 # Clock Setup
 d-i clock-setup/utc boolean true
 d-i clock-setup/utc-auto boolean true
 d-i time/zone string UTC
-# d-i time/zone string Asia/Singapore
 
 # Locale Setup
 # d-i debian-installer/language string en
@@ -27,18 +21,26 @@ d-i mirror/http/directory string /debian
 d-i mirror/http/hostname string httpredir.debian.org
 d-i mirror/http/proxy string
 
-# Drive Setup
-d-i partman-auto/method string lvm
-d-i partman-auto-lvm/guided_size string max
-d-i partman-auto/choose_recipe select atomic
-d-i partman-lvm/confirm boolean true
-d-i partman-lvm/confirm_nooverwrite boolean true
+# Disk Partition
 d-i partman-lvm/device_remove_lvm boolean true
-d-i partman-md/device_remove_md boolean true
+d-i partman-auto/method string regular
+d-i partman-lvm/confirm boolean true
+d-i partman-basicfilesystems/no_swap boolean false
+
+d-i partman-auto/disk string /dev/sda
+d-i partman-auto/expert_recipe string                           \
+    myroot ::                                                   \
+        512 1 -1 ext4                                           \
+            $primary{ } $bootable{ } method{ format }           \
+            format{ } use_filesystem{ } filesystem{ ext4 }      \
+            mountpoint{ / }                                     \
+    .
+d-i partman-auto/choose_recipe select myroot
+
+d-i partman-partitioning/confirm_write_new_label boolean true
 d-i partman/choose_partition select finish
 d-i partman/confirm boolean true
 d-i partman/confirm_nooverwrite boolean true
-d-i partman/confirm_write_new_label boolean true
 
 # User Setup
 d-i passwd/root-login boolean false
@@ -53,21 +55,51 @@ d-i passwd/user-default-groups sudo
 d-i user-setup/allow-password-weak boolean true
 d-i user-setup/encrypt-home boolean false
 
-# Package Setup
+# # Package Setup
 # d-i apt-setup/contrib boolean true
 # d-i apt-setup/non-free boolean true
 tasksel tasksel/first multiselect standard, ssh-server
 d-i pkgsel/install-language-support boolean false
 d-i pkgsel/update-policy select none
 d-i pkgsel/upgrade select full-upgrade
-d-i pkgsel/include string sudo wget curl fuse make qemu-guest-agent cloud-init
-# d-i pkgsel/update-policy select unattended-upgrades
-# d-i pkgsel/include string unattended-upgrades
+d-i pkgsel/include string openssh-server sudo qemu-guest-agent haveged cloud-init wget curl make unzip apt-transport-https ca-certificates software-properties-common gnupg-agent cloud-utils
 popularity-contest popularity-contest/participate boolean false
+
+# Grub
+d-i grub-installer/only_debian boolean true
+d-i grub-installer/with_other_os boolean true
+d-i grub-installer/bootdev string /dev/sda
+# d-i grub-installer/bootdev string default
+
+#
+#  Run custom commands during the installation:
+#  - Enable sudo for Nomad
+#  - Reset machine-id
+#  - Disable select cloud-init modules
+#
+d-i preseed/late_command string \
+    in-target /bin/sh -c "echo 'nomad ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers.d/90-nomad"; \
+    in-target chmod 0440 /etc/sudoers.d/90-nomad; \
+    in-target cat /dev/null | tee /etc/machine-id; \
+    in-target cat /dev/null | tee /var/lib/dbus/machine-id; \
+    in-target sed -i 's/^\s*users:/#&/' /etc/cloud/cloud.cfg; \
+    in-target sed -i 's/^\s*- default/#&/' /etc/cloud/cloud.cfg; \
+    in-target sed -i 's/^\s*- snap/#&/' /etc/cloud/cloud.cfg; \
+    in-target sed -i 's/^\s*- ubuntu-advantage/#&/' /etc/cloud/cloud.cfg; \
+    in-target sed -i 's/^\s*- disable-ec2-metadata/#&/' /etc/cloud/cloud.cfg; \
+    in-target sed -i 's/^\s*- byobu/#&/' /etc/cloud/cloud.cfg; \
+    in-target sed -i 's/^\s*- fan/#&/' /etc/cloud/cloud.cfg; \
+    in-target sed -i 's/^\s*- lxd/#&/' /etc/cloud/cloud.cfg; \
+    in-target sed -i 's/^\s*- puppet/#&/' /etc/cloud/cloud.cfg; \
+    in-target sed -i 's/^\s*- chef/#&/' /etc/cloud/cloud.cfg; \
+    in-target sed -i 's/^\s*- mcollective/#&/' /etc/cloud/cloud.cfg; \
+    in-target sed -i 's/^\s*- salt-minion/#&/' /etc/cloud/cloud.cfg; \
+    in-target sed -i 's/^\s*- rightscale_userdata/#&/' /etc/cloud/cloud.cfg; \
+    in-target sed -i 's/^\s*- phone-home/#&/' /etc/cloud/cloud.cfg; \
+    in-target sed -i '/^deb cdrom:/s/^/#/' /etc/apt/sources.list;
+
+# https://unix.stackexchange.com/questions/409212/preseed-directive-to-skip-another-cd-dvd-scanning
+apt-cdrom-setup apt-setup/cdrom/set-first boolean false
 
 # Final Setup
 d-i finish-install/reboot_in_progress note
-
-d-i preseed/late_command string sed -i '/^deb cdrom:/s/^/#/' /target/etc/apt/sources.list
-# https://unix.stackexchange.com/questions/409212/preseed-directive-to-skip-another-cd-dvd-scanning
-apt-cdrom-setup apt-setup/cdrom/set-first boolean false
